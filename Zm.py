@@ -712,7 +712,7 @@ def process_Z(leng):
             print('Logical qubit=',i,'Distance=',w)
             dz = min(dz,w)
         print('Code parameters: n,k,d=',Hx174_cleaned.shape[1],k_d,min(d0,dz))
-        print("优化后大码距U：")
+        print("After opt dx：")
         U0=U
         U1=loop_update_U_W(U0, V, Hx174_cleaned, dt=dt0)
         d = Hx174_cleaned.shape[1]
