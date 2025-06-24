@@ -893,5 +893,5 @@ if __name__ == "__main__":
         dz = min(dz,w)
     print("\n========= Summary of joint Z =========")
     print(f"Z{2} tensor Z{3}")
-    print("leng\tn\tdz\t优化前dx\t优化后dx ")
+    print("leng\tn\tdz\tbefore opt dx\tafter dx ")
     print(f"{leng}\t{Hx174_sortedall.shape[1]}\t{dz}\t{dx}\t{d}")

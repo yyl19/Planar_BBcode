@@ -756,5 +756,5 @@ if __name__ == "__main__":
         d = min(d,w)
     print("\n========= Summary of Code Parameters =========")
     print(f"X{0} tensor X{2}")
-    print("wid\tn\tdx\t优化前dz\t优化后dz ")
+    print("wid\tn\tdx\tbefore opt dz\tafter opt dz ")
     print(f"{wid}\t{Hx174_sortedall.shape[1]}\t{dx}\t{dz}\t{d}")
