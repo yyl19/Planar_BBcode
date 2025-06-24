@@ -11,7 +11,7 @@ The code focuses on generating planar quantum error-correcting codes and perform
 
 | File            | Description                                                                 |
 |-----------------|-----------------------------------------------------------------------------|
-| `planarBBcode.py` | Generates the planar BB code structure, including `Hx`, `Hz` stabilizer matrices. |
+| `planarBBcode.py` | Generates the planar BB code structure, including `Hx`, `Hz` parity-check matrices. |
 | `Xm.py`         | Performs **single-block** $X$ and $XX$ logical Pauli measurements.          |
 | `Zm.py`         | Performs **single-block** $Z$ and $ZZ$ logical Pauli measurements.          |
 | `jointx.py`     | Performs **two-block** $X$-type joint logical measurements.                 |
