@@ -712,7 +712,7 @@ def process_Z(leng):
             print('Logical qubit=',i,'Distance=',w)
             dz = min(dz,w)
         print('Code parameters: n,k,d=',Hx174_cleaned.shape[1],k_d,min(d0,dz))
-        print("After opt dx：")
+        print("After opt dx:")
         U0=U
         U1=loop_update_U_W(U0, V, Hx174_cleaned, dt=dt0)
         d = Hx174_cleaned.shape[1]
@@ -826,7 +826,7 @@ if __name__ == "__main__":
             resultsz.append(resultz)
             _, _, _,  _, d = resultz
             if d == dt0:
-                print(f"已达到目标 dx = {dt0}，提前退出循环。")
+                print(f"The target value dz = {dt0} has been reached; exiting the loop early.")
                 break
     #calculate ZZ
     results_zz = {}
@@ -838,17 +838,17 @@ if __name__ == "__main__":
                 results.append(result)
                 _, _, _,  _, d = result
                 if d == dt0:
-                    print(f"已达到目标 dx = {dt0}，提前退出循环。")
+                    print(f"The target value dz = {dt0} has been reached; exiting the loop early.")
                     break
         results_zz[i] = results
     print("\n========= Summary Z =========")
     print(f"Z{mlx}")
-    print("leng\tn\tdz\t优化前dx\t优化后dx ")
+    print("leng\tn\tdz\tBefore opt dx\tAfter opt dx ")
     for wid, n,  d0,dz,d in resultsz:
         print(f"{wid}\t{n}\t{dz}\t{d0}\t{d}")
     print("\n========= Summary ZZ =========")
     for i in range(len(results_zz)):
         print(f"Z{mlx} Z{m1lx[i]}")
-        print("leng\tn\tdz\t优化前dx\t优化后dx ")
+        print("leng\tn\tdz\tBefore opt dx\tAfter opt dx ")
         for wid, n,  d0,dz,d in results_zz[i]:
             print(f"{wid}\t{n}\t{dz}\t{d0}\t{d}")
