@@ -26,7 +26,9 @@ The code focuses on generating planar quantum error-correcting codes and perform
 ```bash
 $ python planarBBcode.py
 The [[162,8,7]] code has been saved to './data/hxhz_7_7.pkl'.
+
 ### 2. Performs **single-block** $X$ and $XX$
+```bash
 $ python Xm.py
 ========= Summary X  =========
 X0
@@ -87,7 +89,9 @@ wid	n	dx	Before opt dz	After opt dz
 12	244	7	5	6
 13	262	7	5	6
 14	280	7	7	7
+
 ### 3. Performs **single-block** $Z$ and $ZZ$
+```bash
 $ python Zm.py
 ========= Summary Z =========
 Z0
