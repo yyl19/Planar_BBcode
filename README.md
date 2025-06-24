@@ -155,7 +155,7 @@ leng	n	dz	优化前dx	优化后dx
 11	228	8	2	6
 13	264	8	3	7
 ```
-###4.Performs **two-block** $Z$-type joint logical measurements
+### 4.Performs **two-block** $Z$-type joint logical measurements
 ```bash
 $ python jointz.py
 ========= Summary of joint Z =========
@@ -163,7 +163,7 @@ Z2 tensor Z3
 leng	n	dz	优化前dx	优化后dx 
 24	468	7	3	7
 ```
-###4.Performs **two-block** $X$-type joint logical measurements
+### 5.Performs **two-block** $X$-type joint logical measurements
 ```bash
 $ python jointx.py
 ========= Summary of Code Parameters =========
