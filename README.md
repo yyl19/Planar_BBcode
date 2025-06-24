@@ -166,7 +166,7 @@ leng	n	dz	优化前dx	优化后dx
 ### 5.Performs **two-block** $X$-type joint logical measurements
 ```bash
 $ python jointx.py
-========= Summary of Code Parameters =========
+========= Summary of joint X =========
 X1 tensor X0
 wid	n	dx	优化前dz	优化后dz 
 25	486	7	3	7
