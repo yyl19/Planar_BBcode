@@ -97,7 +97,7 @@ wid	n	dx	Before opt dz	After opt dz
 $ python Zm.py
 ========= Summary Z =========
 Z0
-leng	n	dz	优化前dx	优化后dx 
+leng	n	dz	Before opt dx	After opt dx 
 9	192	9	2	4
 10	210	9	2	5
 11	228	9	2	6
@@ -106,14 +106,14 @@ leng	n	dz	优化前dx	优化后dx
 
 ========= Summary ZZ =========
 Z0 Z1
-leng	n	dz	优化前dx	优化后dx 
+leng	n	dz	Before opt dx	After opt dx 
 9	192	8	2	4
 10	210	8	5	5
 11	228	8	4	6
 12	246	8	2	6
 13	264	8	7	7
 Z0 Z2
-leng	n	dz	优化前dx	优化后dx 
+leng	n	dz	Before opt dx	After opt dx 
 9	192	8	2	5
 10	210	8	2	6
 11	228	8	2	6
@@ -121,13 +121,13 @@ leng	n	dz	优化前dx	优化后dx
 13	264	8	2	6
 14	282	8	3	7
 Z0 Z3
-leng	n	dz	优化前dx	优化后dx 
+leng	n	dz	Before opt dx	After opt dx 
 9	192	8	2	4
 10	210	8	2	5
 11	228	8	2	6
 12	246	8	3	7
 Z0 Z4
-leng	n	dz	优化前dx	优化后dx 
+leng	n	dz	Before opt dx	After opt dx 
 9	192	9	2	3
 10	210	9	2	4
 11	228	9	2	5
@@ -136,20 +136,20 @@ leng	n	dz	优化前dx	优化后dx
 14	282	9	4	6
 15	300	9	4	7
 Z0 Z5
-leng	n	dz	优化前dx	优化后dx 
+leng	n	dz	Before opt dx	After opt dx 
 9	192	8	3	4
 10	210	8	2	5
 11	228	8	2	6
 12	246	8	3	7
 Z0 Z6
-leng	n	dz	优化前dx	优化后dx 
+leng	n	dz	Before opt dx	After opt dx 
 9	192	8	4	4
 10	210	8	4	6
 11	228	8	4	6
 12	246	8	4	6
 13	264	8	4	7
 Z0 Z7
-leng	n	dz	优化前dx	优化后dx 
+leng	n	dz	Before opt dx	After opt dx 
 9	192	8	2	4
 10	210	8	4	4
 11	228	8	2	6
@@ -160,7 +160,7 @@ leng	n	dz	优化前dx	优化后dx
 $ python jointz.py
 ========= Summary of joint Z =========
 Z2 tensor Z3
-leng	n	dz	优化前dx	优化后dx 
+leng	n	dz	Before opt dx	After opt dx 
 24	468	7	3	7
 ```
 ### 5.Performs **two-block** $X$-type joint logical measurements
@@ -168,6 +168,6 @@ leng	n	dz	优化前dx	优化后dx
 $ python jointx.py
 ========= Summary of joint X =========
 X0 tensor X1
-wid	n	dx	优化前dz	优化后dz 
+wid	n	dx	Before opt dz	After opt dz 
 25	486	7	3	7
 ```
