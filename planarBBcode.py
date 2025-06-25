@@ -77,9 +77,9 @@ def number_edges_with_xy_coordinates(xalltile, zalltile,g=10 ,w=6,tile_size=4, l
     rows=2+g+2+tile_size-1
     cols=2+w+2+tile_size-1
     core_left=l
-    core_right=l+w+r
+    core_right=l+w+tile_size-1
     core_bottom=down
-    core_top=down+g+up
+    core_top=down+g+tile_size-1
     radius = 0.1
     positions = {}
     edge_labels = {}
