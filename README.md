@@ -24,7 +24,7 @@ The `plot` folder contains several illustrative figures:
 
 The `logical_basis` folder provides the **logical operator bases** of the original code.
 
-The `MP` folder contains the **deformed version of the code** and the corresponding **optimized logical operators**, which are obtained by a painting procedure during the measurement of `P`.
+The `MP` folder contains the **deformed version of the code** and the corresponding **optimized logical operators**, which are obtained by the painting procedure during the measurement of `P`.
 
 ## 🧪 Example: [[162, 8, 7]] Code
 
