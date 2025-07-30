@@ -1,62 +1,13 @@
 import numpy as np
-import pulp
+import gurobipy as gp
+from gurobipy import GRB
 from bposd.css import css_code
-import concurrent.futures
 import pickle
-import matplotlib.pyplot as plt
-import galois
+import time
+import sys
 import os
-import warnings
-GF = galois.GF(2)
-def distance_test(stab, logicOp):
-    if hasattr(logicOp, "toarray"):
-        logicOp = logicOp.toarray().flatten()
-    else:
-        logicOp = np.array(logicOp).flatten()
-
-    if hasattr(stab, "toarray"):
-        stab = stab.toarray()
-    else:
-        stab = np.array(stab)
-
-    n = stab.shape[1]
-    m = stab.shape[0]
-
-    wstab = int(np.max(np.sum(stab, axis=1)))
-    wlog = int(np.count_nonzero(logicOp))
-
-    num_anc_stab = int(np.ceil(np.log2(wstab)))
-    num_anc_logical = int(np.ceil(np.log2(wlog)))
-    num_var = n + m * num_anc_stab + num_anc_logical
-
-    model = pulp.LpProblem("Minimum_Weight_Logical", pulp.LpMinimize)
-
-    x = [pulp.LpVariable(f"x_{i}", cat="Binary") for i in range(num_var)]
-    model += pulp.lpSum(x[i] for i in range(n))
-
-    for row in range(m):
-        weight = [0] * num_var
-        for q in np.nonzero(stab[row])[0]:
-            weight[q] = 1
-        cnt = 1
-        for q in range(num_anc_stab):
-            weight[n + row * num_anc_stab + q] = -(1 << cnt)
-            cnt += 1
-        model += pulp.lpSum(weight[i] * x[i] for i in range(num_var)) == 0
-
-    weight = [0] * num_var
-    for q in np.nonzero(logicOp)[0]:
-        weight[q] = 1
-    cnt = 1
-    for q in range(num_anc_logical):
-        weight[n + m * num_anc_stab + q] = -(1 << cnt)
-        cnt += 1
-    model += pulp.lpSum(weight[i] * x[i] for i in range(num_var)) == 1
-
-    model.solve(pulp.PULP_CBC_CMD(msg=False))
-    opt_val = sum([pulp.value(x[i]) for i in range(n)])
-    return int(opt_val)
-
+from multiprocessing import Pool, cpu_count
+import galois
 def gf2_rank_galois(matrix):
     """
     使用 galois 库在 GF(2) 上计算矩阵秩
@@ -127,9 +78,6 @@ def solve_gf2(AT, s):
                 x[pivot_col] -= x[j]
     
     return x
-def compute_distance_for_logical(i, Hx, lx_row):
-    w = distance_test(Hx, lx_row)
-    return i, w
 def gf2_inverse_product(jx, jz):
     """
     计算在 GF(2) 域上 jx @ jz.T 的逆矩阵
@@ -462,6 +410,71 @@ def construct_Jx(B, lx17_d, Hx):
 
     Jx = np.vstack(Jx_rows)
     return np.array(Jx, dtype=int), selected_indices,lx17_d[selected_indices, :]
+def gf2_add(a, b):
+    """
+    GF(2) 上的向量加法（按位异或）
+
+    参数:
+        a, b: numpy.ndarray 类型，shape 相同，元素为 0 或 1
+
+    返回:
+        numpy.ndarray: GF(2) 上 a + b 的结果
+    """
+    return (np.array(a) ^ np.array(b)) % 2
+def distance_test(stab, logicOp):
+    if hasattr(logicOp, "toarray"):
+        logicOp = logicOp.toarray().flatten()
+    else:
+        logicOp = np.array(logicOp).flatten()
+
+    if hasattr(stab, "toarray"):
+        stab = stab.toarray()
+    else:
+        stab = np.array(stab)
+
+    n = stab.shape[1]
+    m = stab.shape[0]
+    wstab = int(np.max(np.sum(stab, axis=1)))
+    wlog = int(np.count_nonzero(logicOp))
+
+    num_anc_stab = int(np.ceil(np.log2(wstab)))
+    num_anc_logical = int(np.ceil(np.log2(wlog)))
+    num_var = n + m * num_anc_stab + num_anc_logical
+
+    #  屏蔽 Gurobi 输出
+    stdout_backup = sys.stdout
+    sys.stdout = open(os.devnull, 'w')
+
+    try:
+        model = gp.Model("min_weight_logical")
+        model.Params.OutputFlag = 0
+        model.Params.LogToConsole = 0
+
+        x = model.addVars(num_var, vtype=GRB.BINARY)
+        model.setObjective(gp.quicksum(x[i] for i in range(n)), GRB.MINIMIZE)
+
+        for row in range(m):
+            coeffs = [0] * num_var
+            for q in np.nonzero(stab[row])[0]:
+                coeffs[q] = 1
+            for q in range(num_anc_stab):
+                coeffs[n + row * num_anc_stab + q] = -(1 << (q + 1))
+            model.addConstr(gp.LinExpr(coeffs, [x[i] for i in range(num_var)]) == 0)
+
+        coeffs = [0] * num_var
+        for q in np.nonzero(logicOp)[0]:
+            coeffs[q] = 1
+        for q in range(num_anc_logical):
+            coeffs[n + m * num_anc_stab + q] = -(1 << (q + 1))
+        model.addConstr(gp.LinExpr(coeffs, [x[i] for i in range(num_var)]) == 1)
+
+        model.optimize()
+        opt_val = sum(int(round(x[i].X)) for i in range(n))
+    finally:
+        sys.stdout.close()
+        sys.stdout = stdout_backup
+
+    return opt_val
 def distance_test1(stab, logicOp):
     if hasattr(logicOp, "toarray"):
         logicOp = logicOp.toarray().flatten()
@@ -475,7 +488,6 @@ def distance_test1(stab, logicOp):
 
     n = stab.shape[1]
     m = stab.shape[0]
-
     wstab = int(np.max(np.sum(stab, axis=1)))
     wlog = int(np.count_nonzero(logicOp))
 
@@ -483,33 +495,38 @@ def distance_test1(stab, logicOp):
     num_anc_logical = int(np.ceil(np.log2(wlog)))
     num_var = n + m * num_anc_stab + num_anc_logical
 
-    model = pulp.LpProblem("Minimum_Weight_Logical", pulp.LpMinimize)
+    stdout_backup = sys.stdout
+    sys.stdout = open(os.devnull, 'w')
 
-    x = [pulp.LpVariable(f"x_{i}", cat="Binary") for i in range(num_var)]
-    model += pulp.lpSum(x[i] for i in range(n))
+    try:
+        model = gp.Model("min_weight_logical_with_solution")
+        model.Params.OutputFlag = 0
+        model.Params.LogToConsole = 0
 
-    for row in range(m):
-        weight = [0] * num_var
-        for q in np.nonzero(stab[row])[0]:
-            weight[q] = 1
-        cnt = 1
-        for q in range(num_anc_stab):
-            weight[n + row * num_anc_stab + q] = -(1 << cnt)
-            cnt += 1
-        model += pulp.lpSum(weight[i] * x[i] for i in range(num_var)) == 0
+        x = model.addVars(num_var, vtype=GRB.BINARY)
+        model.setObjective(gp.quicksum(x[i] for i in range(n)), GRB.MINIMIZE)
 
-    weight = [0] * num_var
-    for q in np.nonzero(logicOp)[0]:
-        weight[q] = 1
-    cnt = 1
-    for q in range(num_anc_logical):
-        weight[n + m * num_anc_stab + q] = -(1 << cnt)
-        cnt += 1
-    model += pulp.lpSum(weight[i] * x[i] for i in range(num_var)) == 1
+        for row in range(m):
+            coeffs = [0] * num_var
+            for q in np.nonzero(stab[row])[0]:
+                coeffs[q] = 1
+            for q in range(num_anc_stab):
+                coeffs[n + row * num_anc_stab + q] = -(1 << (q + 1))
+            model.addConstr(gp.LinExpr(coeffs, [x[i] for i in range(num_var)]) == 0)
 
-    model.solve(pulp.PULP_CBC_CMD(msg=False))
-    logical_op = np.array([int(round(pulp.value(x[i]))) for i in range(n)])
-    opt_val = int(np.sum(logical_op))
+        coeffs = [0] * num_var
+        for q in np.nonzero(logicOp)[0]:
+            coeffs[q] = 1
+        for q in range(num_anc_logical):
+            coeffs[n + m * num_anc_stab + q] = -(1 << (q + 1))
+        model.addConstr(gp.LinExpr(coeffs, [x[i] for i in range(num_var)]) == 1)
+
+        model.optimize()
+        logical_op = np.array([int(round(x[i].X)) for i in range(n)])
+        opt_val = int(np.sum(logical_op))
+    finally:
+        sys.stdout.close()
+        sys.stdout = stdout_backup
 
     return opt_val, logical_op
 def find_and_remove_w(W, op):
@@ -536,62 +553,100 @@ def find_and_remove_w(W, op):
     # 若无满足条件的行，返回空行向量
     w = np.empty((0, W.shape[1]), dtype=int)
     return w, W
-def gf2_add(a, b):
-    """
-    GF(2) 上的向量加法（按位异或）
-
-    参数:
-        a, b: numpy.ndarray 类型，shape 相同，元素为 0 或 1
-
-    返回:
-        numpy.ndarray: GF(2) 上 a + b 的结果
-    """
-    return (np.array(a) ^ np.array(b)) % 2
-def loop_update_U_W(U, V, Hz174_cleaned, dt):
-    """
-    对 U 的每一行进行更新，直到其在 Hz174_cleaned 下的 distance 大于等于 dt。
-    每次如果发现 distance 不足，通过从 W 中找可修正向量 w 来更新。
-
-    参数：
-        U: (k, n) numpy.ndarray，待更新的逻辑算符矩阵
-        V: (m, n) numpy.ndarray，初始 W
-        Hz174_cleaned: (r, n) numpy.ndarray，Z stabilizer check matrix
-        dt: int，目标距离阈值
-
-    返回：
-        U_new: 更新后的 U
-        W_new: 更新后的 W
-    """
+def update_single_logical_op(args):
+    i, Ui, V, Hz, dt = args
     W = V.copy()
-    U = U.copy()
+    best_Ui = Ui.copy()
+    best_d = 0
 
-    for i in range(U.shape[0]):
-        W = V.copy()
-        best_Ui = U[i, :].copy()
-        best_d = 0
-
-        d_u, e = distance_test1(Hz174_cleaned, U[i, :])
+    # 屏蔽 Gurobi 输出
+    stdout_backup = sys.stdout
+    sys.stdout = open(os.devnull, 'w')
+    try:
+        d_u, e = distance_test1(Hz, Ui)
         if d_u > best_d:
             best_d = d_u
-            best_Ui = U[i, :].copy()
+            best_Ui = Ui.copy()
 
         while d_u < dt:
             if np.sum(W @ e % 2) > 0:
                 w, W = find_and_remove_w(W, e)
-                U[i, :] = gf2_add(w, U[i, :])
+                Ui = gf2_add(w, Ui)
                 for j in range(W.shape[0]):
                     if np.dot(W[j], e) % 2 != 0:
                         W[j, :] = gf2_add(w, W[j, :])
-                d_u, e = distance_test1(Hz174_cleaned, U[i, :])
+                d_u, e = distance_test1(Hz, Ui)
                 if d_u > best_d:
                     best_d = d_u
-                    best_Ui = U[i, :].copy()
+                    best_Ui = Ui.copy()
             else:
                 break
-        U[i, :] = best_Ui
+    finally:
+        sys.stdout.close()
+        sys.stdout = stdout_backup
 
+    return best_Ui
+def loop_update_U_W_parallel(U, V, Hz, dt, num_workers=None):
+    """
+    并行版本：对 U 的每一行进行并行更新，使用 Gurobi 精确求 distance。
 
-    return U
+    参数：
+        U: (k, n) numpy.ndarray，待更新逻辑算符矩阵
+        V: (m, n) numpy.ndarray，初始 W
+        Hz: (r, n) numpy.ndarray，Z stabilizer 检验矩阵
+        dt: int，目标距离阈值
+        num_workers: int，使用的 CPU 核数，默认使用全部
+
+    返回：
+        U_new: (k, n) 更新后的逻辑操作符矩阵
+    """
+    if num_workers is None:
+        num_workers = cpu_count()
+
+    U = np.array(U, copy=True)
+    args_list = [(i, U[i, :], V.copy(), Hz, dt) for i in range(U.shape[0])]
+
+    with Pool(processes=num_workers) as pool:
+        U_updated = pool.map(update_single_logical_op, args_list)
+
+    return np.array(U_updated)
+
+def _single_distance_task(args):
+    i, Hz, logicOp = args
+    w = distance_test(Hz, logicOp)
+    return i, w  # 返回索引和距离
+
+def parallel_distance_test_all(Hz, LZ, num_workers=None):
+    """
+    并行计算所有逻辑 Z 操作符的距离。
+    
+    参数：
+        Hz: numpy.ndarray, Z stabilizer 检验矩阵
+        LZ: numpy.ndarray, shape=(k, n)，每行是一个逻辑 Z 操作符
+        num_workers: 使用的 CPU 核数（默认使用全部）
+
+    返回：
+        dz: 所有逻辑 Z 操作符的最小距离
+    """
+    start_time = time.time()
+    if num_workers is None:
+        num_workers = cpu_count()
+
+    dz = Hz.shape[1]  # 初始最小距离为最大可能值 n
+
+    args_list = [(i, Hz, LZ[i]) for i in range(LZ.shape[0])]
+
+    with Pool(processes=num_workers) as pool:
+        results = pool.map(_single_distance_task, args_list)
+
+    for i, w in results:
+        print(f"Logical qubit={i}, Distance={w}")
+        dz = min(dz, w)
+
+    elapsed_time = time.time() - start_time
+    print(f"minimum d = {dz}")
+    print(f"total time:{elapsed_time:.4f} s")
+    return dz
 def classify_and_sort_edges(edge_map):
     """
     对边进行排序：
@@ -871,27 +926,18 @@ if __name__ == "__main__":
     Jx=gf2_matmul(GT.T, lx17_d)
     U = Jx[:len(B), :]
     V=Jx[len(B):, :]
-    print("before opt dx:")
-    dx = Hx174_cleaned.shape[1]
-    for i in range(U.shape[0]):
-        w = distance_test(Hx174_cleaned,U[i,:])
-        print('Logical qubit=',i,'Distance=',w)
-        dx = min(dx,w)
-    print("after opt dx:")
+    print("Before opt dz:")
+    dzb = parallel_distance_test_all(Hx174_cleaned, U, num_workers=U.shape[0]+1) 
+    print("dx:")
+    dx = parallel_distance_test_all(H_new, np.array(B), num_workers=len(B)+1) 
+    print('Code parameters: n,k,d=',Hx174_cleaned.shape[1],k_d,min(dx,dzb))
+    print("After opt dz:")
     U0=U
-    U1=loop_update_U_W(U0, V, Hx174_cleaned, dt=dt0)
-    d = Hx174_cleaned.shape[1]
-    for i in range(U1.shape[0]):
-        w = distance_test(Hx174_cleaned,U1[i,:])
-        print('Logical qubit=',i,'Distance=',w)
-        d = min(d,w)
-    print("dz:")
-    dz = H_new.shape[1]
-    for i in range(len(B)):
-        w = distance_test(H_new,B[i])
-        print('Logical qubit=',i,'Distance=',w)
-        dz = min(dz,w)
+    U1=loop_update_U_W_parallel(U0, V, Hx174_cleaned, dt=dt0, num_workers=U.shape[0]+1)
+    dza = parallel_distance_test_all(Hx174_cleaned, U1, num_workers=U1.shape[0]+1)
+    print('Code parameters: n,k,d=',Hx174_sortedall.shape[1],k_d,min(dx,dza))
+
     print("\n========= Summary of joint Z =========")
     print(f"Z{2} tensor Z{3}")
-    print("leng\tn\tdz\tbefore opt dx\tafter dx ")
-    print(f"{leng}\t{Hx174_sortedall.shape[1]}\t{dz}\t{dx}\t{d}")
+    print("leng\tn\tdx\tbefore opt dz\tafter dz ")
+    print(f"{leng}\t{Hx174_sortedall.shape[1]}\t{dx}\t{dzb}\t{dza}")
